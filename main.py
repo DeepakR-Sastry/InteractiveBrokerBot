@@ -1,48 +1,47 @@
-import ibapi
-
 from ibapi.client import EClient
 from ibapi.wrapper import EWrapper
-
 from ibapi.contract import Contract
-from ibapi.order import *
-import threading
-import time
+from threading import Timer
 
-class IBApi(EWrapper, EClient):
+class TestApp(EWrapper, EClient):
     def __init__(self):
         EClient.__init__(self, self)
 
-class Bot():
-    ib = None
-    def __init__(self):
-        self.ib = IBApi()
-        self.ib.connect("127.0.0.1", 7497, 1)
-        ib_thread = threading.Thread(target=self.run_loop, daemon=True)
-        ib_thread.start()
-        time.sleep(1)
+    def error(self, reqId, errorCode, errorString):
+        print("ERROR: ", reqId, " ", errorCode, " ", errorString)
 
+    def nextValidId(self, orderId):
+        self.start()
 
-        symbol = input("Enter the symbol you want to trade")
-        order = Order()
-        order.orderType = "MKT"
-        order.action = "BUY"
-        quantity = 1
-        order.totalQuantity = quantity
+    def contractDetails(self, reqId, contractDetails):
+        print("contractDetails: ", reqId, " ", contractDetails, "\n")
 
+    def contractDetailsEnd(self, reqId):
+        print("\ncontractDetails End\n")
+
+    def start(self):
         contract = Contract()
-        contract.symbol = symbol
-        contract.secType = "STK"
-
+        contract.symbol = "SPY"
+        contract.secType = "OPT"
         contract.exchange = "SMART"
-        contract.primaryExchange = "ISLAND"
         contract.currency = "USD"
+        contract.strike = 481
+        contract.lastTradeDateOrContractMonth = 20220121
 
-        self.ib.placeOrder(3, contract, order)
+        self.reqContractDetails(1, contract)
 
-    def run_loop(self):
-        self.ib.run()
+    def stop(self):
+        self.done = True
+        self.disconnect()
 
+def main():
+    app = TestApp()
+    app.nextOrderId = 11
+    app.connect("127.0.0.1", 7497, 0)
 
+    Timer(4, app.stop).start()
+    app.run()
 
+if __name__ == "__main__":
+    main()
 
-bot = Bot()
