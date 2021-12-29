@@ -10,8 +10,11 @@ from ibapi.ticktype import TickTypeEnum
 import datetime
 from datetime import date
 from datetime import datetime
+import time
 
 class TestApp(EWrapper, EClient):
+    cashBalanceUSD = 0
+    price = 0
     def __init__(self):
         EClient.__init__(self, self)
 
@@ -42,8 +45,10 @@ class TestApp(EWrapper, EClient):
         print("\ncontractDetails End\n")
 
     def tickPrice(self, reqId, tickType, price, attrib):
-        #print("Price:",price, "TickType:",TickTypeEnum.to_str(tickType),"Price:", price, end = " ")
-        return price
+        print("Price:",price, "TickType:",TickTypeEnum.to_str(tickType),"Price:", price, end = " ")
+        if TickTypeEnum.to_str(tickType) == "DELAYED_ASK":
+            self.price = price
+            # print(self.price)
 
     def tickSize(self, reqId, tickType, size):
         print("Tick Size. Ticker Id:", reqId, "tickType:", TickTypeEnum.to_str(tickType), "Size:", size)
@@ -59,7 +64,11 @@ class TestApp(EWrapper, EClient):
     def accountSummary(self, reqId:int, account:str, tag:str, value:str,
                        currency:str):
         super().accountSummary(reqId, account, tag, value, currency)
-        print("AccountSummary. ReqId:", reqId, "Account:", account, "Tag:", tag, "Value:", value, "Currency:", currency)
+        if tag == "CashBalanceValue":
+            self.cashBalanceUSD = value
+        #print("AccountSummary. ReqId:", reqId, "Account:", account, "Tag:", tag, "Value:", value, "Currency:", currency)
+
+
 
     def accountSummaryEnd(self, reqId: int):
         super().accountSummaryEnd(reqId)
@@ -77,22 +86,24 @@ class TestApp(EWrapper, EClient):
 
 
 
-
-
-
-
-
     def start(self):
+        contract = Contract()
+        contract.symbol = "SPY"
+        contract.secType = "STK"
+        contract.exchange = "SMART"
+        contract.currency = "USD"
+        self.reqMarketDataType(3)
+        self.reqMktData(1, contract, "", False, False, [])
         now = datetime.now()
         current_time = now.strftime("%H%M%S")
+        self.reqAccountSummary(2, "All", "$LEDGER:USD, ")
+        cashBalanceUSD = self.cashBalanceUSD
+        time.sleep(1)
+
+        #if date.today().weekday()==0 and current_time == "073000":
 
 
-        if date.today().weekday()==0 and current_time == "073000":
-            contract = Contract()
-            contract.symbol = "SPY"
-            contract.secType = "STK"
-            contract.exchange = "SMART"
-            contract.currency = "USD"
+
 
             #weeklyString = self.weekDay()
 
